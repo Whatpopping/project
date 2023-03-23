@@ -1,0 +1,189 @@
+import openai
+import random
+import numpy as np
+import tensorflow as tf
+import tensorflow_datasets as tfds
+import tensorflow.keras.preprocessing.text as kpt
+from tensorflow.keras.preprocessing.text import Tokenizer
+
+# Set up the OpenAI API credentials
+openai.api_key = "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"
+
+# Define a function for generating a response using the OpenAI API
+def generate_response(prompt):
+    response = openai.Completion.create(
+        engine="davinci",
+        prompt=prompt,
+        max_tokens=60,
+        n=1,
+        stop=None,
+        temperature=0.5
+    )
+    message = response.choices[0].text.strip()
+    return message
+
+# Define the training dataset
+train_data = [
+    "Hello, how are you?",
+    "I am doing well, thank you for asking.",
+    "What can I help you with today?",
+    "Can you recommend a good restaurant in the area?",
+    "Sure, there's a great Italian place on Main Street."
+]
+
+# Initialize the tokenizer
+tokenizer = Tokenizer(filters='', lower=False)
+
+# Fit the tokenizer on the training data
+tokenizer.fit_on_texts(train_data)
+
+# Define the hyperparameters for the chatbot model
+num_layers = 4
+d_model = 128
+num_heads = 8
+dff = 512
+input_vocab_size = len(tokenizer.word_index) + 2
+target_vocab_size = len(tokenizer.word_index) + 2
+dropout_rate = 0.1
+
+# Define the chatbot model using a transformer architecture
+class ChatbotModel(tf.keras.Model):
+    def __init__(self, num_layers, d_model, num_heads, dff, input_vocab_size, target_vocab_size, dropout_rate):
+        super(ChatbotModel, self).__init__()
+        self.encoder = tf.keras.layers.Encoder(num_layers, d_model, num_heads, dff, input_vocab_size, dropout_rate)
+        self.decoder = tf.keras.layers.Decoder(num_layers, d_model, num_heads, dff, target_vocab_size, dropout_rate)
+        self.final_layer = tf.keras.layers.Dense(target_vocab_size)
+    
+    def call(self, inputs, targets, training, enc_padding_mask, look_ahead_mask, dec_padding_mask):
+        enc_output = self.encoder(inputs, training, enc_padding_mask)
+        dec_output, attention_weights = self.decoder(targets, enc_output, training, look_ahead_mask, dec_padding_mask)
+        final_output = self.final_layer(dec_output)
+        return final_output, attention_weights
+
+# Initialize the chatbot model
+chatbot_model = ChatbotModel(num_layers, d_model, num_heads, dff, input_vocab_size, target_vocab_size, dropout_rate)
+
+# Define the optimizer and loss function for training the chatbot
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')
+# Define the function for calculating the loss of the chatbot
+def loss_function(real, pred):
+    mask = tf.math.logical_not(tf.math.equal(real, 0))
+    loss_ = loss_object(real, pred)
+    mask = tf.cast(mask, dtype=loss_.dtype)
+    loss_ *= mask
+    return tf.reduce_mean(loss_)
+
+# Define the function for creating the masks
+def create_masks(inputs, targets):enc_padding_mask = tf.keras.layers.Embedding(input_vocab_size, d_model)(inputs)
+enc_padding_mask = enc_padding_mask[:, :, np.newaxis, :]
+enc_padding_mask = tf.cast(tf.math.equal(enc_padding_mask, 0), tf.float32
+)   look_ahead_mask = tf.keras.layers.CreateLookAheadMask()(targets)   dec_padding_mask = tf.keras.layers.Embedding(target_vocab_size, d_model)(targets)   dec_padding_mask = dec_padding_mask[:, :, np.newaxis, :]   dec_padding_mask = tf.cast(tf.math.equal(dec_padding_mask, 0), tf.float32)    return enc_padding_mask, look_ahead_mask, dec_padding_mask # Define the training step function @tf.function def train_step(inputs, targets):   target_input = targets[:, :-1]   target_real = targets[:, 1:]    enc_padding_mask, look_ahead_mask, dec_padding_mask = create_masks(inputs, target_input)    with tf.GradientTape() as tape:   predictions, _ = chatbot_model(inputs, target_input, True, enc_padding_mask, look_ahead_mask, dec_padding_mask)   loss = loss_function(target_real, predictions)    gradients = tape.gradient(loss, chatimport openai
+import random
+import numpy as np
+import tensorflow as tf
+import tensorflow_datasets as tfds
+import tensorflow.keras.preprocessing.text as kpt
+from tensorflow.keras.preprocessing.text import Tokenizer
+
+# Set up the OpenAI API credentials
+openai.api_key = "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"
+
+# Define a function for generating a response using the OpenAI API
+def generate_response(prompt):
+    response = openai.Completion.create(
+        engine="davinci",
+        prompt=prompt,
+        max_tokens=60,
+        n=1,
+        stop=None,
+        temperature=0.5
+    )
+    message = response.choices[0].text.strip()
+    return message
+
+# Define the training dataset
+train_data = [
+    "Hello, how are you?",
+    "I am doing well, thank you for asking.",
+    "What can I help you with today?",
+    "Can you recommend a good restaurant in the area?",
+    "Sure, there's a great Italian place on Main Street."
+]
+
+# Initialize the tokenizer
+tokenizer = Tokenizer(filters='', lower=False)
+
+# Fit the tokenizer on the training data
+tokenizer.fit_on_texts(train_data)
+
+# Define the hyperparameters for the chatbot model
+num_layers = 4
+d_model = 128
+num_heads = 8
+dff = 512
+input_vocab_size = len(tokenizer.word_index) + 2
+target_vocab_size = len(tokenizer.word_index) + 2
+dropout_rate = 0.1
+
+# Define the chatbot model using a transformer architecture
+class ChatbotModel(tf.keras.Model):
+    def __init__(self, num_layers, d_model, num_heads, dff, input_vocab_size, target_vocab_size, dropout_rate):
+        super(ChatbotModel, self).__init__()
+
+        self.encoder = tf.keras.layers.Encoder(num_layers, d_model, num_heads, dff, input_vocab_size, dropout_rate)
+        self.decoder = tf.keras.layers.Decoder(num_layers, d_model, num_heads, dff, target_vocab_size, dropout_rate)
+        self.final_layer = tf.keras.layers.Dense(target_vocab_size)
+
+    def call(self, inputs, targets, training, enc_padding_mask, look_ahead_mask, dec_padding_mask):
+        enc_output = self.encoder(inputs, training, enc_padding_mask)
+        dec_output, attention_weights = self.decoder(targets, enc_output, training, look_ahead_mask, dec_padding_mask)
+        final_output = self.final_layer(dec_output)
+
+        return final_output, attention_weights
+
+# Initialize the chatbot model
+chatbot_model = ChatbotModel(num_layers, d_model, num_heads, dff, input_vocab_size, target_vocab_size, dropout_rate)
+
+# Define the optimizer and loss function for training the chatbot
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+loss_object = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction='none')
+
+# Define the function for calculating the loss of the chatbot
+def loss_function(real, pred):
+    mask = tf.math.logical_not(tf.math.equal(real, 0))
+    loss_ = loss_object(real, pred)
+
+    mask = tf.cast(mask, dtype=loss_.dtype)
+    loss_ *= mask
+
+    return tf.reduce_mean(loss_)
+
+# Define the function for creating the masks
+def create_masks(inputs, targets):
+    enc_padding_mask = tf.keras.layers.Embedding(input_vocab_size, d_model)(inputs)
+    enc_padding_mask = enc_padding_mask[:, :, np.newaxis, :]
+    enc_padding_mask = tf.cast(tf.math.equal(enc_padding_mask, 0), tf.float32
+)
+    look_ahead_mask = tf.keras.layers.CreateLookAheadMask()(targets)
+    dec_padding_mask = tf.keras.layers.Embedding(target_vocab_size, d_model)(targets)
+    dec_padding_mask = dec_padding_mask[:, :, np.newaxis, :]
+    dec_padding_mask = tf.cast(tf.math.equal(dec_padding_mask, 0), tf.float32)
+
+    return enc_padding_mask, look_ahead_mask, dec_padding_mask
+# Define the training step function
+@tf.function
+def train_step(inputs, targets):
+    target_input = targets[:, :-1]
+    target_real = targets[:, 1:]
+    
+    enc_padding_mask, look_ahead_mask, dec_padding_mask = create_masks(inputs, target_input)
+    
+    with tf.GradientTape() as tape:
+        predictions, _ = chatbot_model(inputs, target_input, True, enc_padding_mask, look_ahead_mask, dec_padding_mask)
+        loss = loss_function(target_real, predictions)
+    
+    gradients = tape.gradient(loss, chatbot_model.trainable_variables)
+    optimizer.apply_gradients(zip(gradients, chatbot_model.trainable_variables))
+    
+    return loss
